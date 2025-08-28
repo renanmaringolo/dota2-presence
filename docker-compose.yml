@@ -37,6 +37,21 @@ services:
     stdin_open: true
     tty: true
 
+  frontend:
+    build: ./frontend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - API_URL=http://app:3000
+      - NEXT_PUBLIC_API_URL=http://localhost:3000
+    depends_on:
+      - app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+
   sidekiq:
     build: .
     command: bundle exec sidekiq
