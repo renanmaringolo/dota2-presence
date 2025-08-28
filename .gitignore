@@ -32,3 +32,11 @@ PRODUTO_DOTA_EVOLUTION_PRESENCE.md
 
 # Coverage reports
 /coverage/
+
+# Frontend Node modules and build artifacts
+frontend/node_modules/
+frontend/.next/
+frontend/.env*
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
