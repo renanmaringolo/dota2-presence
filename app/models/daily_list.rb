@@ -1,114 +1,98 @@
 class DailyList < ApplicationRecord
-  include AASM
-
-  POSITIONS = %w[P1 P2 P3 P4 P5].freeze
-
-  validates :date, presence: true, uniqueness: true
-
+  # Associations
   has_many :presences, dependent: :destroy
-  has_many :users, through: :presences
-  has_many :whatsapp_messages, dependent: :nullify
 
-  scope :recent, -> { order(date: :desc) }
+  # Enums
+  enum list_type: { ancient: 'ancient', immortal: 'immortal' }
+  enum status: { open: 'open', full: 'full' }
+
+  # Validations
+  validates :date, presence: true
+  validates :list_type, presence: true, inclusion: { in: list_types.keys }
+  validates :sequence_number, presence: true, numericality: { greater_than: 0 }
+  validates :status, presence: true, inclusion: { in: statuses.keys }
+  validates :max_players, presence: true, numericality: { greater_than: 0 }
+  
+  validates :sequence_number, uniqueness: { 
+    scope: [:date, :list_type],
+    message: "já existe para esta data e tipo de lista"
+  }
+
+  # Scopes
+  scope :for_type, ->(type) { where(list_type: type) }
   scope :for_date, ->(date) { where(date: date) }
+  scope :current_open, -> { open.order(:sequence_number) }
+  scope :historical, -> { full.order(date: :desc, sequence_number: :desc) }
 
-  aasm column: :status do
-    state :generated, initial: true
-    state :sent
-    state :closed
-
-    event :mark_as_sent do
-      transitions from: :generated, to: :sent
-    end
-
-    event :close_list do
-      transitions from: [:generated, :sent], to: :closed
-    end
-
-    event :reopen do
-      transitions from: :closed, to: :sent
-    end
+  # Método principal: sempre retorna a lista OPEN atual ou cria nova
+  def self.current_open_list(date, list_type)
+    # Buscar lista OPEN existente
+    open_list = for_date(date).for_type(list_type).current_open.first
+    return open_list if open_list
+    
+    # Se não existe OPEN, criar nova sequência
+    next_sequence = for_date(date).for_type(list_type).maximum(:sequence_number) || 0
+    
+    create!(
+      date: date,
+      list_type: list_type,
+      sequence_number: next_sequence + 1,
+      status: 'open'
+    )
   end
 
-  def self.for_today
-    find_or_create_by(date: Date.current)
-  end
-
-  def confirmed_presences
-    presences.confirmed
-  end
-
-  def immortals_count
-    confirmed_presences.joins(:user).where(users: { category: 'immortal' }).count
-  end
-
-  def ancients_count
-    confirmed_presences.joins(:user).where(users: { category: 'ancient' }).count
-  end
-
-  def positions_filled
-    confirmed_presences.pluck(:position).uniq.sort
+  # Métodos de negócio
+  def display_name
+    "#{list_type.humanize} ##{sequence_number}"
   end
 
   def available_positions
-    POSITIONS - positions_filled
+    occupied = presences.confirmed.pluck(:position)
+    %w[P1 P2 P3 P4 P5] - occupied
   end
 
-  def full_summary
-    {
-      total: confirmed_presences.count,
-      immortals: immortals_count,
-      ancients: ancients_count,
-      positions_filled: positions_filled.count,
-      available_positions: available_positions
-    }
+  def full?
+    presences.confirmed.count >= max_players
   end
 
-  def formatted_for_whatsapp
-    return content if content.present?
-    generate_whatsapp_content
+  def can_user_join?(user)
+    return false unless user_eligible?(user)
+    return false if user_already_confirmed_today?(user)
+    available_positions.any?
+  end
+
+  # Quando lista enche, marca como full e cria próxima automaticamente
+  def mark_as_full_and_create_next!
+    transaction do
+      # Marcar atual como FULL
+      update!(status: 'full')
+      
+      # Criar próxima lista OPEN
+      next_list = self.class.current_open_list(date, list_type)
+      
+      Rails.logger.info "#{display_name} ficou cheia. Nova lista criada: #{next_list.display_name}"
+      
+      next_list
+    end
   end
 
   private
 
-  def generate_whatsapp_content
-    immortals = User.active.immortal.order(:name)
-    ancients = User.active.ancient.order(:name)
-    
-    content = []
-    content << "🎯 *DOTA EVOLUTION PRESENCE - #{date.strftime('%d/%m')}*"
-    content << ""
-    
-    if immortals.any?
-      content << "📋 *LISTA IMMORTAL*"
-      immortals.each_with_index do |user, index|
-        status = user_status_for_list(user)
-        content << "#{index + 1}. #{user.full_display_name} #{status}"
-      end
-      content << ""
+  def user_eligible?(user)
+    case list_type
+    when 'ancient'
+      user.can_join_ancient_list?   # Todos podem (inclusive smurfs)
+    when 'immortal' 
+      user.can_join_immortal_list?  # Só Divine+
     end
-    
-    if ancients.any?
-      content << "📋 *LISTA ANCIENT*"
-      ancients.each_with_index do |user, index|
-        status = user_status_for_list(user)
-        content << "#{index + 1}. #{user.full_display_name} #{status}"
-      end
-      content << ""
-    end
-    
-    content << "🔗 *Confirmar presença:*"
-    content << "#{Rails.application.routes.url_helpers.presence_url(date: date.strftime('%Y-%m-%d'))}"
-    content << ""
-    content << "💬 *Ou responda:* Nickname/Posição (ex: Metallica/P1)"
-    
-    content.join("\n")
   end
 
-  def user_status_for_list(user)
-    presence = presences.find_by(user: user)
-    return "✅ #{presence.position}" if presence&.confirmed?
-    return "❓ #{presence.status}" if presence
-    "⚪"
+  def user_already_confirmed_today?(user)
+    # Verificar se usuário já confirmou em QUALQUER lista do mesmo tipo hoje
+    self.class.for_date(date)
+             .for_type(list_type)
+             .joins(:presences)
+             .where(presences: { user: user, status: 'confirmed' })
+             .exists?
   end
 end

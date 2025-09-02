@@ -1,137 +1,86 @@
-# Seed data for Dota Evolution Presence
+# This file should ensure the existence of records required to run the application in every environment (production,
+# development, test). The code here should be idempotent so that it can be executed at any point in every environment.
+# The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
-puts "🌱 Creating seed data for Dota Evolution Presence..."
+puts "🌱 Seeding development data..."
 
-# Create Immortal Users (Coaches)
-immortals = [
+# Create test users with different ranks
+test_users = [
   {
-    name: "João Silva",
-    nickname: "ProCoach",
-    phone: "+5511999999001",
-    category: "immortal",
-    positions: ["P1", "P2"],
-    preferred_position: "P1"
+    email: 'ancient@test.com',
+    password: 'password123',
+    name: 'Ancient Player',
+    nickname: 'AncientGamer',
+    phone: '+5511999999001',
+    rank_medal: 'ancient',
+    rank_stars: 3,
+    preferred_position: 'P1',
+    positions: ['P1', 'P2']
   },
   {
-    name: "Maria Santos",
-    nickname: "MidQueen",
-    phone: "+5511999999002",
-    category: "immortal", 
-    positions: ["P2"],
-    preferred_position: "P2"
+    email: 'divine@test.com', 
+    password: 'password123',
+    name: 'Divine Player',
+    nickname: 'DivineCoach',
+    phone: '+5511999999002',
+    rank_medal: 'divine',
+    rank_stars: 2,
+    preferred_position: 'P3',
+    positions: ['P3', 'P4', 'P5']
   },
   {
-    name: "Carlos Oliveira",
-    nickname: "OffGod",
-    phone: "+5511999999003",
-    category: "immortal",
-    positions: ["P3"],
-    preferred_position: "P3"
+    email: 'immortal@test.com',
+    password: 'password123',
+    name: 'Immortal Player',
+    nickname: 'ImmortalPro',
+    phone: '+5511999999003',
+    rank_medal: 'immortal',
+    rank_stars: 100, # Immortal rank number
+    preferred_position: 'P2',
+    positions: ['P1', 'P2', 'P3', 'P4', 'P5']
   }
 ]
 
-immortals.each do |user_data|
-  user = User.find_or_create_by(nickname: user_data[:nickname]) do |u|
-    u.name = user_data[:name]
-    u.phone = user_data[:phone]
-    u.category = user_data[:category]
-    u.positions = user_data[:positions]
-    u.preferred_position = user_data[:preferred_position]
-    u.active = true
+test_users.each do |user_attrs|
+  user = User.find_or_create_by(email: user_attrs[:email]) do |u|
+    u.password = user_attrs[:password]
+    u.name = user_attrs[:name] 
+    u.nickname = user_attrs[:nickname]
+    u.phone = user_attrs[:phone]
+    u.rank_medal = user_attrs[:rank_medal]
+    u.rank_stars = user_attrs[:rank_stars]
+    u.preferred_position = user_attrs[:preferred_position]
+    u.positions = user_attrs[:positions]
   end
-  puts "✅ Created Immortal: #{user.full_display_name}"
+  
+  puts "✅ User created: #{user.nickname} (#{user.display_rank})"
 end
 
-# Create Ancient Users (Students)
-ancients = [
-  {
-    name: "Renan Proença",
-    nickname: "Metallica", 
-    phone: "+5511999999004",
-    category: "ancient",
-    positions: ["P1", "P3"],
-    preferred_position: "P1"
-  },
-  {
-    name: "Pedro Costa",
-    nickname: "Support4Life",
-    phone: "+5511999999005",
-    category: "ancient",
-    positions: ["P4", "P5"],
-    preferred_position: "P5"
-  },
-  {
-    name: "Ana Rodrigues",
-    nickname: "CarryMeHome",
-    phone: "+5511999999006",
-    category: "ancient",
-    positions: ["P1"],
-    preferred_position: "P1"
-  },
-  {
-    name: "Lucas Ferreira",
-    nickname: "MidOrFeed",
-    phone: "+5511999999007",
-    category: "ancient",
-    positions: ["P2"],
-    preferred_position: "P2"
-  },
-  {
-    name: "Patricia Lima",
-    nickname: "WardMaster",
-    phone: "+5511999999008",
-    category: "ancient", 
-    positions: ["P4", "P5"],
-    preferred_position: "P4"
-  }
-]
-
-ancients.each do |user_data|
-  user = User.find_or_create_by(nickname: user_data[:nickname]) do |u|
-    u.name = user_data[:name]
-    u.phone = user_data[:phone]
-    u.category = user_data[:category]
-    u.positions = user_data[:positions]
-    u.preferred_position = user_data[:preferred_position]
-    u.active = true
+# Create daily lists for today and next few days
+(Date.current..Date.current + 3.days).each do |date|
+  # Ancient list
+  ancient_list = DailyList.find_or_create_by(date: date, list_type: 'ancient', sequence_number: 1) do |list|
+    list.status = 'open'
+    list.max_players = 5
+    list.created_by = 'seed'
   end
-  puts "✅ Created Ancient: #{user.full_display_name}"
-end
-
-# Create today's daily list
-today_list = DailyList.find_or_create_by(date: Date.current) do |dl|
-  dl.status = 'generated'
-  dl.summary = {}
-end
-puts "✅ Created today's daily list: #{today_list.date}"
-
-# Create some sample presences
-sample_presences = [
-  { user: "Metallica", position: "P1" },
-  { user: "ProCoach", position: "P2" },
-  { user: "Support4Life", position: "P5" }
-]
-
-sample_presences.each do |presence_data|
-  user = User.find_by(nickname: presence_data[:user])
-  next unless user
-
-  presence = Presence.find_or_create_by(
-    user: user,
-    daily_list: today_list,
-    position: presence_data[:position]
-  ) do |p|
-    p.source = 'web'
-    p.status = 'confirmed'
-    p.confirmed_at = Time.current
+  puts "📋 Daily list created: #{ancient_list.display_name} for #{date}"
+  
+  # Immortal list
+  immortal_list = DailyList.find_or_create_by(date: date, list_type: 'immortal', sequence_number: 1) do |list|
+    list.status = 'open'
+    list.max_players = 5
+    list.created_by = 'seed'
   end
-  puts "✅ Created presence: #{presence.display_name}" if presence.persisted?
+  puts "📋 Daily list created: #{immortal_list.display_name} for #{date}"
 end
 
-puts "\n🎉 Seed data created successfully!"
-puts "\nSummary:"
-puts "- #{User.immortal.count} Immortal players"
-puts "- #{User.ancient.count} Ancient players" 
-puts "- #{DailyList.count} Daily list(s)"
-puts "- #{Presence.confirmed.count} Confirmed presence(s)"
-puts "\n🎮 Ready to start gaming!"
+puts "🎉 Seeding completed!"
+puts "
+Test users created:
+- ancient@test.com / password123 (Ancient 3)
+- divine@test.com / password123 (Divine 2) 
+- immortal@test.com / password123 (Immortal #100)
+
+Daily lists created for today + next 3 days (Ancient & Immortal)
+"

@@ -1,30 +1,28 @@
 Rails.application.routes.draw do
-  # WhatsApp webhook endpoints
-  post '/webhook/whatsapp', to: 'whatsapp_webhook#receive_message'
-  get '/webhook/whatsapp', to: 'whatsapp_webhook#verify_webhook'
+  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
-  # Public presence confirmation API
-  resources :presences, only: [:index, :create] do
-    collection do
-      delete ':nickname', to: 'presences#destroy', as: :cancel
-    end
-  end
+  # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
+  # Can be used by load balancers and uptime monitors to verify that the app is live.
+  get "up" => "rails/health#show", as: :rails_health_check
 
-  # Admin API
-  namespace :admin do
-    resources :users
-    resources :daily_lists do
-      member do
-        post :send_to_whatsapp
-      end
-    end
+  # API routes with Graphiti pattern
+  scope path: ApplicationResource.endpoint_namespace, defaults: { format: :jsonapi } do
+    # Authentication routes (custom endpoints)
+    post '/auth/register', to: 'api/v1/auth#register'
+    post '/auth/login', to: 'api/v1/auth#login'
+    get '/auth/me', to: 'api/v1/auth#me'
     
-    # Admin dashboard endpoints
-    get :dashboard, to: 'dashboard#index'
+    # Daily Lists routes
+    get '/daily-lists/dashboard', to: 'api/v1/daily_lists#dashboard'
+    
+    # Presences routes
+    post '/presences', to: 'api/v1/presences#create'
+    delete '/presences/:list_type', to: 'api/v1/presences#destroy'
+    
+    # Graphiti resources (legacy/admin)
+    resources :users, only: [:index, :show, :create, :update], controller: 'api/v1/users'
   end
 
-  # Health check
-  get '/health', to: proc { [200, {}, ['OK']] }
-  
-  root to: proc { [200, { 'Content-Type' => 'application/json' }, [{ message: 'Dota Evolution Presence API', version: '1.0' }.to_json]] }
+  # Defines the root path route ("/")
+  root "rails/health#show"
 end

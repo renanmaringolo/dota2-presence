@@ -1,69 +1,193 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+/* Dota Evolution Color Palette */
+:root {
+  --dota-bronze: #D4842A;
+  --dota-dark-bronze: #B8731F;
+  --dota-copper: #CD853F;
+  --dota-dark-copper: #A0522D;
+  --dota-gold: #FFD700;
+  --dota-dark-gold: #DAA520;
+  --dota-bg-dark: #1a1a1a;
+  --dota-bg-darker: #0f0f0f;
+  --dota-bg-card: rgba(26, 26, 26, 0.95);
+  --dota-text-light: #f5f5f5;
+  --dota-text-muted: rgba(245, 245, 245, 0.7);
+  --dota-border: rgba(212, 132, 42, 0.3);
+  --dota-shadow: rgba(212, 132, 42, 0.1);
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Custom gradients */
+.dota-gradient-bg {
+  background: linear-gradient(135deg, 
+    var(--dota-bg-dark) 0%, 
+    var(--dota-bg-darker) 50%, 
+    var(--dota-bg-dark) 100%);
+  background-size: 400% 400%;
+  animation: gradientShift 8s ease infinite;
+}
+
+.dota-gradient-bronze {
+  background: linear-gradient(135deg, 
+    var(--dota-bronze) 0%, 
+    var(--dota-copper) 50%, 
+    var(--dota-dark-bronze) 100%);
+}
+
+.dota-card {
+  background: var(--dota-bg-card);
+  border: 1px solid var(--dota-border);
+  box-shadow: 0 10px 30px var(--dota-shadow), 
+              0 0 20px rgba(212, 132, 42, 0.05);
+  backdrop-filter: blur(10px);
+}
+
+.dota-input {
+  background: rgba(26, 26, 26, 0.8);
+  border: 1px solid var(--dota-border);
+  color: var(--dota-text-light);
+  transition: all 0.3s ease;
+}
+
+.dota-input:focus {
+  border-color: var(--dota-bronze);
+  box-shadow: 0 0 0 3px rgba(212, 132, 42, 0.1);
+  outline: none;
+}
+
+.dota-input::placeholder {
+  color: var(--dota-text-muted);
+}
+
+.dota-select {
+  background: rgba(26, 26, 26, 0.8);
+  border: 1px solid var(--dota-border);
+  color: var(--dota-text-light);
+  transition: all 0.3s ease;
+}
+
+.dota-select:focus {
+  border-color: var(--dota-bronze);
+  box-shadow: 0 0 0 3px rgba(212, 132, 42, 0.1);
+  outline: none;
+}
+
+.dota-select option {
+  background: var(--dota-bg-dark);
+  color: var(--dota-text-light);
+}
+
+.dota-checkbox {
+  position: relative;
+  appearance: none;
+  width: 1.2rem;
+  height: 1.2rem;
+  border: 2px solid var(--dota-border);
+  border-radius: 4px;
+  background: rgba(26, 26, 26, 0.8);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dota-checkbox:checked {
+  background: var(--dota-bronze);
+  border-color: var(--dota-bronze);
+}
+
+.dota-checkbox:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--dota-bg-darker);
+  font-size: 0.875rem;
+  font-weight: bold;
+}
+
+.dota-btn-primary {
+  background: var(--dota-bronze);
+  border: none;
+  color: var(--dota-bg-darker);
+  font-weight: 600;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.dota-btn-primary:hover {
+  background: var(--dota-dark-bronze);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(212, 132, 42, 0.3);
+}
+
+.dota-btn-primary:active {
+  transform: translateY(0);
+}
+
+.dota-btn-primary:disabled {
+  background: var(--dota-dark-copper);
+  transform: none;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Loading animation */
+.dota-loading {
+  position: relative;
+}
+
+.dota-loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  animation: shimmer 2s infinite;
+}
+
+/* Animations */
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
   }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+.fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+/* Error styles */
+.dota-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+body {
+  background: var(--dota-bg-darker);
+  color: var(--dota-text-light);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
