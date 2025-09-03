@@ -1,0 +1,105 @@
+# See https://help.github.com/articles/ignoring-files for more about ignoring files.
+
+# Dependencies
+node_modules/
+/vendor/bundle
+
+# Logs - Complete coverage
+*.log
+log/
+log/*
+log/**/*
+tmp/logs/
+tmp/logs/*
+
+# Rails cache and temporary files
+tmp/
+tmp/**/*
+tmp/cache/
+tmp/cache/**/*
+tmp/bootsnap/
+tmp/pids/
+tmp/pids/*
+
+# Runtime data
+*.pid
+*.seed
+
+# Coverage directory
+coverage/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Rails - Complete tmp/ directory
+tmp/
+tmp/*
+tmp/**/*
+/tmp/
+/tmp/*
+/tmp/**/*
+
+# Bootsnap cache - Complete coverage
+tmp/cache/
+tmp/cache/*
+tmp/cache/**/*
+tmp/cache/bootsnap/
+tmp/cache/bootsnap/*
+tmp/cache/bootsnap/**/*
+tmp/cache/bootsnap/compile-cache-iseq/
+tmp/cache/bootsnap/compile-cache-iseq/*
+tmp/cache/bootsnap/compile-cache-iseq/**/*
+
+# Database files
+*.sqlite3
+*.sqlite3-*
+*.sqlite3-shm
+*.sqlite3-wal
+db/development.sqlite3*
+db/test.sqlite3*
+db/*.sqlite3*
+
+# Rails credentials and secrets - SECURITY CRITICAL
+config/master.key
+config/credentials/
+config/credentials/*
+config/credentials/**/*
+/.secret_key_base
+/config/secrets.yml
+/config/database.yml.bak
+
+# Environment variables
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Frontend dependencies
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/dist/
+frontend/.turbo/
+
+# Package manager files
+frontend/package-lock.json.bak
+frontend/yarn.lock.bak
+package-lock.json
+yarn.lock
+/config/credentials/development.key

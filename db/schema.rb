@@ -10,7 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_09_02_140733) do
+ActiveRecord::Schema[7.1].define(version: 2025_09_03_134805) do
+  # These are extensions that must be enabled in order to support this database
+  enable_extension "plpgsql"
+
   create_table "daily_lists", force: :cascade do |t|
     t.date "date", null: false
     t.string "list_type", null: false
@@ -25,8 +28,8 @@ ActiveRecord::Schema[7.1].define(version: 2025_09_02_140733) do
   end
 
   create_table "presences", force: :cascade do |t|
-    t.integer "user_id", null: false
-    t.integer "daily_list_id", null: false
+    t.bigint "user_id", null: false
+    t.bigint "daily_list_id", null: false
     t.string "position", null: false
     t.string "source", default: "web", null: false
     t.string "status", default: "confirmed", null: false
@@ -34,9 +37,9 @@ ActiveRecord::Schema[7.1].define(version: 2025_09_02_140733) do
     t.text "notes"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["daily_list_id", "position"], name: "idx_presences_unique_position", unique: true, where: "status = 'confirmed'"
+    t.index ["daily_list_id", "position"], name: "idx_presences_unique_position", unique: true, where: "((status)::text = 'confirmed'::text)"
     t.index ["daily_list_id", "status"], name: "idx_presences_list_status"
-    t.index ["daily_list_id", "user_id"], name: "idx_presences_unique_user", unique: true, where: "status = 'confirmed'"
+    t.index ["daily_list_id", "user_id"], name: "idx_presences_unique_user", unique: true, where: "((status)::text = 'confirmed'::text)"
     t.index ["daily_list_id"], name: "index_presences_on_daily_list_id"
     t.index ["user_id", "status"], name: "idx_presences_user_status"
     t.index ["user_id"], name: "index_presences_on_user_id"
@@ -59,7 +62,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_09_02_140733) do
     t.datetime "updated_at", null: false
     t.index ["category"], name: "index_users_on_category"
     t.index ["email"], name: "index_users_on_email", unique: true
-    t.index ["nickname"], name: "index_users_on_nickname", unique: true
+    t.index ["name", "phone"], name: "index_users_on_name_and_phone", unique: true
     t.index ["phone"], name: "index_users_on_phone", unique: true
     t.index ["role"], name: "index_users_on_role"
   end

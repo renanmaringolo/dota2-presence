@@ -121,7 +121,7 @@ class Auth::RegisterOperation < ApplicationOperation
 
   def validate_all_business_rules!
     check_email_availability!
-    check_nickname_availability!
+    check_name_phone_combination!
     check_phone_availability! if @parsed_params[:phone].present?
   end
 
@@ -131,9 +131,9 @@ class Auth::RegisterOperation < ApplicationOperation
     end
   end
 
-  def check_nickname_availability!
-    if User.exists?(nickname: @parsed_params[:nickname])
-      raise DuplicateUserError, 'Nickname is already taken'
+  def check_name_phone_combination!
+    if User.exists?(name: @parsed_params[:name], phone: @parsed_params[:phone])
+      raise DuplicateUserError, 'Name and phone combination already exists'
     end
   end
 

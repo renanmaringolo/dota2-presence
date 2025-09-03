@@ -2,11 +2,16 @@ class Api::V1::AuthController < ApplicationController
   # ZERO logic - only Graphiti resource calls
 
   def register
-    # Call Operation directly and manually serialize response
-    attributes = params.dig(:data, :attributes) || {}
+    # Handle both direct params and nested Graphiti format
+    if params[:email] && params[:name]
+      # Direct format from curl
+      permitted_attributes = params.permit(:name, :email, :password, :nickname, :phone, :category, :rank_medal, :rank_stars, :preferred_position, positions: []).to_h
+    else
+      # Graphiti nested format
+      attributes = params.dig(:data, :attributes) || {}
+      permitted_attributes = attributes.is_a?(ActionController::Parameters) ? attributes.permit!.to_h : attributes
+    end
     
-    # Permit and convert parameters for Operation
-    permitted_attributes = attributes.permit!.to_h
     operation_result = Auth::RegisterOperation.call(permitted_attributes)
     
     if operation_result[:meta][:success]
@@ -60,8 +65,16 @@ class Api::V1::AuthController < ApplicationController
   end
 
   def login
-    attributes = params.dig(:data, :attributes) || {}
-    permitted_attributes = attributes.permit!.to_h
+    # Handle both direct params and nested Graphiti format
+    if params[:email] && params[:password]
+      # Direct format from curl
+      permitted_attributes = { email: params[:email], password: params[:password] }
+    else
+      # Graphiti nested format
+      attributes = params.dig(:data, :attributes) || {}
+      permitted_attributes = attributes.is_a?(ActionController::Parameters) ? attributes.permit!.to_h : attributes
+    end
+    
     operation_result = Auth::LoginOperation.call(permitted_attributes)
     
     if operation_result[:meta][:success]

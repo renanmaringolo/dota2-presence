@@ -13,8 +13,9 @@ class User < ApplicationRecord
             format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :password, length: { minimum: 6 }, if: :password_required?
   validates :name, presence: true
-  validates :nickname, presence: true, uniqueness: { case_sensitive: false }
-  validates :phone, uniqueness: { allow_blank: true }
+  validates :nickname, presence: true
+  validates :name, uniqueness: { scope: :phone, message: 'and phone combination already exists' }
+  validates :phone, presence: true
   validates :category, presence: true, inclusion: { in: CATEGORIES }
   validates :preferred_position, inclusion: { in: POSITIONS }, allow_blank: true
   validates :rank_medal, presence: true, inclusion: { in: MEDALS }

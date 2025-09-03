@@ -9,11 +9,46 @@ class ApplicationController < ActionController::API
     Rails.env.development? || Rails.env.test?
   end
 
+  protected
+
+  def authenticate_user!
+    token = request.headers['Authorization']&.gsub('Bearer ', '')
+    
+    unless token
+      render json: {
+        errors: [{
+          status: '401',
+          title: 'Authentication Required',
+          detail: 'Token de autenticação necessário'
+        }]
+      }, status: :unauthorized
+      return
+    end
+
+    operation_result = Auth::MeOperation.call(token: token)
+    
+    if operation_result[:meta][:success]
+      @current_user = operation_result[:data][:user_object]
+    else
+      render json: {
+        errors: [{
+          status: '401',
+          title: 'Invalid Token',
+          detail: 'Token inválido'
+        }]
+      }, status: :unauthorized
+    end
+  end
+
+  def current_user
+    @current_user
+  end
+
   private
 
   def set_cors_headers
     origin = request.headers['Origin']
-    allowed_origins = ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003']
+    allowed_origins = ENV.fetch('CORS_ORIGINS', 'http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3003').split(',')
     
     if allowed_origins.include?(origin)
       response.headers['Access-Control-Allow-Origin'] = origin

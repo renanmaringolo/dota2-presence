@@ -81,6 +81,7 @@ class Auth::MeOperation < ApplicationOperation
     
     success_response({
       user: user_attributes,
+      user_object: @user,
       token: @token,
       expires_in: expires_in
     })

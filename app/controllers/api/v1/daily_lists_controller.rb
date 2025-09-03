@@ -3,14 +3,17 @@ class Api::V1::DailyListsController < ApplicationController
 
   # GET /api/v1/daily-lists/dashboard
   def dashboard
-    result = DailyList::GetCurrentListsOperation.call(user: current_user)
+    operation_result = DailyList::GetCurrentListsOperation.call(user: current_user)
 
-    if result[:meta][:success]
+    if operation_result[:meta][:success]
+      # Return current lists as they come from the operation (already serialized)
+      current_lists = operation_result[:data][:current_lists]
+
       render json: {
         data: {
-          current_lists: result[:data][:current_lists],
-          daily_stats: result[:data][:daily_stats],
-          historical_summary: result[:data][:historical_summary]
+          current_lists: current_lists,
+          daily_stats: operation_result[:data][:daily_stats],
+          historical_summary: operation_result[:data][:historical_summary]
         },
         meta: {
           success: true,
@@ -18,28 +21,16 @@ class Api::V1::DailyListsController < ApplicationController
         }
       }
     else
-      render json: { 
-        errors: [{ 
-          detail: result[:meta][:message] 
-        }] 
-      }, status: 422
+      error_type = operation_result[:meta][:error_type] || 'DashboardError'
+      error_message = operation_result[:meta][:message]
+      
+      render json: {
+        errors: [{
+          status: '422',
+          title: error_type,
+          detail: error_message
+        }]
+      }, status: :unprocessable_content
     end
-  end
-
-  private
-
-  def authenticate_user!
-    token = request.headers['Authorization']&.gsub('Bearer ', '')
-    return render json: { errors: [{ detail: 'Token não fornecido' }] }, status: 401 unless token
-
-    decoded_token = JwtService.decode(token)
-    return render json: { errors: [{ detail: 'Token inválido' }] }, status: 401 unless decoded_token
-
-    @current_user = User.find_by(id: decoded_token[:user_id])
-    return render json: { errors: [{ detail: 'Usuário não encontrado' }] }, status: 401 unless @current_user
-  end
-
-  def current_user
-    @current_user
   end
 end

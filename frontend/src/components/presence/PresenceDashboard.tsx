@@ -62,6 +62,7 @@ interface HistoricalList {
 
 export function PresenceDashboard() {
   const { user, getAuthToken } = useAuth();
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
@@ -76,7 +77,7 @@ export function PresenceDashboard() {
         return;
       }
 
-      const response = await fetch('/api/v1/daily-lists/dashboard', {
+      const response = await fetch(`${API_BASE}/api/v1/daily-lists/dashboard`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -110,7 +111,7 @@ export function PresenceDashboard() {
         return;
       }
 
-      const response = await fetch('/api/v1/presences', {
+      const response = await fetch(`${API_BASE}/api/v1/presences`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -156,7 +157,7 @@ export function PresenceDashboard() {
         return;
       }
 
-      const response = await fetch(`/api/v1/presences/${listType}`, {
+      const response = await fetch(`${API_BASE}/api/v1/presences/${listType}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
