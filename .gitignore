@@ -103,3 +103,7 @@ frontend/yarn.lock.bak
 package-lock.json
 yarn.lock
 /config/credentials/development.key
+
+# Local documentation files
+CLAUDE.md
+session_history.md
