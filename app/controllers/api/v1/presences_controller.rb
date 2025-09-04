@@ -51,8 +51,19 @@ class Api::V1::PresencesController < ApplicationController
       }, status: :not_found
     end
 
-    if presence.update(status: 'cancelled', notes: "Cancelado pelo usuário em #{Time.current}")
-      # Se a lista estava cheia, voltar para 'open'
+    if presence.status == 'cancelled'
+      return render json: {
+        errors: [{
+          status: '422',
+          title: 'AlreadyCancelled',
+          detail: 'Presença já foi cancelada anteriormente'
+        }]
+      }, status: :unprocessable_content
+    end
+
+    begin
+      presence.toggle_to_cancelled!("Cancelado pelo usuário")
+      
       daily_list = presence.daily_list
       if daily_list.status == 'full'
         daily_list.update!(status: 'open')
@@ -65,12 +76,12 @@ class Api::V1::PresencesController < ApplicationController
           message: "Presença cancelada com sucesso!"
         }
       }, status: :ok
-    else
+    rescue ActiveRecord::RecordInvalid => e
       render json: {
         errors: [{
           status: '422',
           title: 'ValidationError',
-          detail: 'Erro ao cancelar presença'
+          detail: "Erro ao cancelar presença: #{e.message}"
         }]
       }, status: :unprocessable_content
     end
@@ -104,6 +115,6 @@ class Api::V1::PresencesController < ApplicationController
              .for_type(list_type)
              .joins(:presences)
              .where(presences: { user: current_user, status: 'confirmed' })
-             .first&.presences&.find_by(user: current_user)
+             .first&.presences&.find_by(user: current_user, status: 'confirmed')
   end
 end

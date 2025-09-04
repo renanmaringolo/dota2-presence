@@ -5,10 +5,8 @@ class User < ApplicationRecord
   CATEGORIES = %w[ancient immortal].freeze
   ROLES = %w[player admin].freeze
   
-  # Dota 2 Medal System
   MEDALS = %w[herald guardian crusader archon legend ancient divine immortal].freeze
   
-  # Validations
   validates :email, presence: true, uniqueness: { case_sensitive: false }, 
             format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :password, length: { minimum: 6 }, if: :password_required?
@@ -28,12 +26,10 @@ class User < ApplicationRecord
   validate :positions_are_valid
   validate :category_matches_rank
 
-  # Callbacks
   before_validation :normalize_email
   before_validation :set_category_from_rank
   after_initialize :set_defaults, if: :new_record?
 
-  # Scopes
   scope :active, -> { where(active: true) }
   scope :immortal, -> { where(category: 'immortal') }
   scope :ancient, -> { where(category: 'ancient') }
@@ -41,7 +37,6 @@ class User < ApplicationRecord
   scope :admins, -> { where(role: 'admin') }
   scope :players, -> { where(role: 'player') }
 
-  # JSON array handling for positions
   def positions
     JSON.parse(read_attribute(:positions) || '[]')
   end
@@ -50,13 +45,12 @@ class User < ApplicationRecord
     write_attribute(:positions, value.to_json)
   end
 
-  # Business logic methods para sistema de listas
   def can_join_ancient_list?
-    true # TODOS podem participar da lista Ancient (inclusive smurfs Divine/Immortal)
+    true
   end
 
   def can_join_immortal_list?
-    %w[divine immortal].include?(rank_medal) # Só Divine+ podem participar da lista Immortal
+    %w[divine immortal].include?(rank_medal)
   end
 
   def plays_position?(position)

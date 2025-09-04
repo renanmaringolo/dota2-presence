@@ -2,7 +2,6 @@ class PresenceResource < ApplicationResource
   type :presences
   model Presence
 
-  # Attributes
   attribute :id, :string, only: [:readable]
   attribute :position, :string, only: [:readable, :writable]
   attribute :source, :string, only: [:readable]
@@ -10,11 +9,9 @@ class PresenceResource < ApplicationResource
   attribute :confirmed_at, :datetime, only: [:readable]
   attribute :notes, :string, only: [:readable]
 
-  # Relationships
   belongs_to :user
   belongs_to :daily_list
 
-  # Custom attributes
   extra_attribute :user_info, :hash, readable: true do
     if @object.user
       {

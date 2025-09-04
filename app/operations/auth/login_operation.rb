@@ -1,24 +1,11 @@
 class Auth::LoginOperation < ApplicationOperation
   def call
-    # Parse and validate parameters
     parse_and_validate_params!
-    
-    # Find user by email
     find_user!
-    
-    # Authenticate user credentials
     authenticate_user_credentials!
-    
-    # Validate user account status
     validate_user_account_status!
-    
-    # Generate authentication tokens
     generate_auth_tokens!
-    
-    # Log login event
     log_login_event!
-    
-    # Return success response
     prepare_success_response!
     
   rescue ValidationError => e
@@ -38,10 +25,7 @@ class Auth::LoginOperation < ApplicationOperation
   def parse_and_validate_params!
     @parsed_params = ParamsParserService.parse_login_params(params)
     
-    # Validate required fields
     validate_required_fields!
-    
-    # Validate parameter formats
     validate_email_format!
     validate_password_presence!
   end
@@ -82,7 +66,6 @@ class Auth::LoginOperation < ApplicationOperation
 
   def authenticate_user_credentials!
     unless @user.authenticate(@parsed_params[:password])
-      # Add small delay to prevent timing attacks
       sleep(0.1)
       raise Auth::InvalidCredentials, 'Invalid email or password'
     end
@@ -95,9 +78,6 @@ class Auth::LoginOperation < ApplicationOperation
     unless @user.active?
       raise Auth::InvalidCredentials, 'Account has been deactivated. Please contact support.'
     end
-    
-    # Additional account status checks could go here
-    # e.g., email verified, not suspended, etc.
   end
 
   def generate_auth_tokens!
@@ -110,7 +90,6 @@ class Auth::LoginOperation < ApplicationOperation
 
   def log_login_event!
     Rails.logger.info "User login successful: #{@user.email} (#{@user.nickname})"
-    # Could add audit logging here if needed
   end
 
   def prepare_success_response!
@@ -141,7 +120,6 @@ class Auth::LoginOperation < ApplicationOperation
     }
   end
 
-  # Error handlers
   def handle_validation_error(error)
     Rails.logger.warn "Login validation failed: #{error.message}"
     error_response(error.message, 'ValidationError')
@@ -149,7 +127,6 @@ class Auth::LoginOperation < ApplicationOperation
 
   def handle_user_not_found_error(error)
     Rails.logger.warn "Login failed - user not found: #{@parsed_params[:email]}"
-    # Use generic message to prevent email enumeration
     error_response('Invalid email or password', 'InvalidCredentials')
   end
 

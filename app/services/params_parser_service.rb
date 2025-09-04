@@ -41,7 +41,6 @@ class ParamsParserService
 
   def self.normalize_phone(phone)
     return nil if phone.blank?
-    # Remove all non-numeric characters
     phone.to_s.gsub(/\D/, '')
   end
 

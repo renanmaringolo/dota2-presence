@@ -1,2 +1,1 @@
-class TokenError < StandardError
-end
+class TokenError < StandardError; end

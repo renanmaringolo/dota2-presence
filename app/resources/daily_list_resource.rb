@@ -2,7 +2,6 @@ class DailyListResource < ApplicationResource
   type :daily_lists
   model DailyList
 
-  # Attributes
   attribute :id, :string, only: [:readable]
   attribute :date, :date, only: [:readable] 
   attribute :list_type, :string, only: [:readable]
@@ -13,7 +12,6 @@ class DailyListResource < ApplicationResource
   attribute :available_positions, :array_of_strings, only: [:readable]
   attribute :created_by, :string, only: [:readable]
 
-  # Custom attributes
   extra_attribute :confirmed_players, :array, readable: true do
     @object.presences.confirmed.includes(:user).map do |presence|
       {
@@ -28,7 +26,6 @@ class DailyListResource < ApplicationResource
   end
 
   extra_attribute :user_status, :hash, readable: true do
-    # This will be populated by the operation
     @user_status || {}
   end
 

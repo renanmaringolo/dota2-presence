@@ -1,18 +1,9 @@
 class Auth::MeOperation < ApplicationOperation
   def call
-    # Extract and validate JWT token
     extract_and_validate_token!
-    
-    # Find user from token data
     find_user_from_token!
-    
-    # Validate user account status
     validate_user_account_status!
-    
-    # Log me event
     log_me_event!
-    
-    # Return success response
     prepare_success_response!
     
   rescue TokenError => e
@@ -34,16 +25,13 @@ class Auth::MeOperation < ApplicationOperation
       raise TokenError, 'Authorization token is required'
     end
     
-    # Clean Bearer prefix if present
     @token = @token.gsub('Bearer ', '') if @token.start_with?('Bearer ')
     
-    # Decode and validate token
     @decoded_token = JwtService.decode(@token)
     unless @decoded_token
       raise TokenError, 'Invalid or expired token'
     end
     
-    # Validate token type
     unless JwtService.valid_user_token?(@token)
       raise TokenError, 'Invalid token type'
     end
@@ -74,7 +62,6 @@ class Auth::MeOperation < ApplicationOperation
   end
 
   def prepare_success_response!
-    # Calculate token expiration info
     token_exp = @decoded_token[:exp]
     current_time = Time.current.to_i
     expires_in = token_exp - current_time
@@ -107,7 +94,6 @@ class Auth::MeOperation < ApplicationOperation
     }
   end
 
-  # Error handlers
   def handle_token_error(error)
     Rails.logger.warn "Me token error: #{error.message}"
     error_response(error.message, 'TokenError')

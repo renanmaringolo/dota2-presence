@@ -6,11 +6,9 @@ class DailyList::GetCurrentListsOperation < ApplicationOperation
   end
 
   def call
-    # Buscar ou criar listas OPEN atuais
     ancient_list = DailyList.current_open_list(@date, 'ancient')
     immortal_list = DailyList.current_open_list(@date, 'immortal')
 
-    # Buscar estatísticas do dia
     daily_stats = calculate_daily_stats
 
     success_response({
@@ -51,7 +49,6 @@ class DailyList::GetCurrentListsOperation < ApplicationOperation
   def calculate_user_status_for_list(list)
     return { can_join: false, reason: 'not_authenticated' } unless @user
 
-    # Verificar elegibilidade por rank
     eligible = case list.list_type
                when 'ancient' then @user.can_join_ancient_list?
                when 'immortal' then @user.can_join_immortal_list?
@@ -59,7 +56,6 @@ class DailyList::GetCurrentListsOperation < ApplicationOperation
 
     return { can_join: false, reason: 'not_eligible' } unless eligible
 
-    # Verificar se já confirmou em outra lista do mesmo tipo hoje
     existing_presence = find_user_presence_for_list_type(list.list_type)
     if existing_presence
       return {
@@ -70,7 +66,6 @@ class DailyList::GetCurrentListsOperation < ApplicationOperation
       }
     end
 
-    # Verificar se lista atual tem vagas
     return { can_join: false, reason: 'list_full' } if list.available_positions.empty?
 
     {
@@ -117,7 +112,7 @@ class DailyList::GetCurrentListsOperation < ApplicationOperation
                  id: list.id,
                  display_name: list.display_name,
                  date: list.date,
-                 completed_at: list.updated_at, # Quando ficou full
+                 completed_at: list.updated_at,
                  players: list.presences.confirmed.includes(:user).map do |p|
                    "#{p.user.nickname} (#{p.position})"
                  end

@@ -1,5 +1,4 @@
 class UserResource < ApplicationResource
-  # Serialization attributes only
   attribute :id, :integer, readable: true, writable: false
   attribute :email, :string, readable: true, writable: true
   attribute :name, :string, readable: true, writable: true
@@ -15,7 +14,6 @@ class UserResource < ApplicationResource
   attribute :created_at, :datetime, readable: true, writable: false
   attribute :updated_at, :datetime, readable: true, writable: false
   
-  # Computed attributes
   attribute :display_rank, :string, readable: true, writable: false do
     @object.display_rank
   end
@@ -28,23 +26,18 @@ class UserResource < ApplicationResource
     @object.can_join_immortal_list?
   end
 
-  # Model association
   self.model = User
   
-  # Secondary endpoint for auth registration (path without namespace prefix)
   secondary_endpoint '/auth/register', [:create]
 
-  # Filters
   filter :email, :string
   filter :nickname, :string
   filter :category, :string
   filter :role, :string
   filter :active, :boolean
 
-  # Sorting
   sort :created_at, :updated_at, :nickname, :name
 
-  # Custom save method - Bridge to Operation (ZERO business logic)
   def save
     @operation_result = Auth::RegisterOperation.call(raw_attributes)
     
@@ -57,7 +50,6 @@ class UserResource < ApplicationResource
     end
   end
 
-  # Auth meta for token response
   def auth_meta
     return {} unless @operation_result&.dig(:meta, :success)
     
@@ -69,13 +61,11 @@ class UserResource < ApplicationResource
 
   private
 
-  # Convert Operation errors to Graphiti format (NO business logic)
   def convert_operation_errors_to_graphiti
-    @model = User.new  # Mock model for Graphiti error handling
+    @model = User.new
     error_message = @operation_result[:meta][:message]
     error_type = @operation_result[:meta][:error_type]
     
-    # Map error types to appropriate field errors
     case error_type
     when 'ValidationError'
       add_validation_error_to_model(error_message)
@@ -87,7 +77,6 @@ class UserResource < ApplicationResource
   end
 
   def add_validation_error_to_model(message)
-    # Map specific validation messages to fields
     case message
     when /email/i
       @model.errors.add(:email, message)

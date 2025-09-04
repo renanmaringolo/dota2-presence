@@ -4,7 +4,6 @@ class ApplicationController < ActionController::API
 
   before_action :set_cors_headers
 
-  # Required for Graphiti
   def show_detailed_exceptions?
     Rails.env.development? || Rails.env.test?
   end

@@ -1,21 +1,10 @@
 class Auth::RegisterOperation < ApplicationOperation
   def call
-    # Parse and validate ALL parameters
     parse_and_validate_params!
-    
-    # Check ALL business rules and edge cases
     validate_all_business_rules!
-    
-    # Create user with full transaction safety
     create_user_with_transaction!
-    
-    # Generate authentication tokens
     generate_auth_tokens!
-    
-    # Log registration event
     log_registration_event!
-    
-    # Return success response
     prepare_success_response!
     
   rescue ValidationError => e
@@ -33,10 +22,7 @@ class Auth::RegisterOperation < ApplicationOperation
   def parse_and_validate_params!
     @parsed_params = ParamsParserService.parse_registration_params(params)
     
-    # Validate required fields
     validate_required_fields!
-    
-    # Validate formats and constraints
     validate_email_format!
     validate_password_strength!
     validate_nickname_format!
@@ -83,7 +69,7 @@ class Auth::RegisterOperation < ApplicationOperation
 
   def validate_phone_format!
     phone = @parsed_params[:phone]
-    return if phone.blank? # Phone is optional
+    return if phone.blank?
     
     unless phone =~ /\A\d{10,11}\z/
       raise ValidationError, 'Phone number must have 10 or 11 digits'
@@ -111,7 +97,7 @@ class Auth::RegisterOperation < ApplicationOperation
 
   def validate_positions_array!
     positions = @parsed_params[:positions]
-    return if positions.empty? # Positions are optional
+    return if positions.empty?
     
     invalid_positions = positions - User::POSITIONS
     unless invalid_positions.empty?
@@ -192,7 +178,6 @@ class Auth::RegisterOperation < ApplicationOperation
     }
   end
 
-  # Error handlers
   def handle_validation_error(error)
     Rails.logger.warn "Registration validation failed: #{error.message}"
     error_response(error.message, 'ValidationError')

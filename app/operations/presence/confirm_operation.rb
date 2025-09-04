@@ -14,7 +14,7 @@ class Presence::ConfirmOperation < ApplicationOperation
     find_current_open_list!
     validate_business_rules!
     
-    create_presence!
+    find_or_create_presence!
     handle_list_auto_progression!
     
     success_response({
@@ -43,7 +43,6 @@ class Presence::ConfirmOperation < ApplicationOperation
   end
 
   def validate_business_rules!
-    # 1. Usuário pode participar deste tipo de lista?
     unless @daily_list.can_user_join?(@user)
       case @list_type
       when 'ancient'
@@ -53,48 +52,56 @@ class Presence::ConfirmOperation < ApplicationOperation
       end
     end
 
-    # 2. Posição está disponível na lista atual?
     unless @daily_list.available_positions.include?(@position)
       raise ValidationError, "Posição #{@position} já está ocupada"
     end
 
-    # 3. Lista está aberta?
     unless @daily_list.status == 'open'
       raise ValidationError, "Lista não está aberta para confirmações"
     end
 
-    # 4. Usuário já confirmou em outra lista do mesmo tipo hoje?
-    existing_presence = find_existing_presence_same_type
+    existing_presence = find_existing_confirmed_presence
     if existing_presence
-      raise ValidationError, "Você já confirmou presença na #{existing_presence.daily_list.display_name} hoje"
+      raise ValidationError, "Você já tem presença confirmada na #{existing_presence.daily_list.display_name}. Cancele primeiro para confirmar em outra lista."
     end
   end
 
-  def find_existing_presence_same_type
-    DailyList.for_date(@date)
-             .for_type(@list_type)
-             .joins(:presences)
-             .where(presences: { user: @user, status: 'confirmed' })
-             .first&.presences&.find_by(user: @user)
+  def find_existing_confirmed_presence
+    Presence.joins(:daily_list)
+            .where(user: @user, status: 'confirmed')
+            .where(daily_lists: { status: 'open' })
+            .first
   end
 
-  def create_presence!
-    @presence = Presence.create!(
-      user: @user,
-      daily_list: @daily_list,
-      position: @position,
-      source: 'web',
-      status: 'confirmed',
-      confirmed_at: Time.current
-    )
-
-    Rails.logger.info "Presença confirmada: #{@user.nickname} na posição #{@position} da #{@daily_list.display_name}"
+  def find_or_create_presence!
+    @presence = @daily_list.presences.find_by(user: @user)
+    
+    if @presence
+      if @presence.status == 'cancelled'
+        @presence.toggle_to_confirmed!(@position)
+        Rails.logger.info "Presença reativada: #{@user.nickname} na posição #{@position} da #{@daily_list.display_name}"
+      else
+        if @presence.position != @position
+          @presence.update!(position: @position)
+          Rails.logger.info "Posição atualizada: #{@user.nickname} #{@presence.position} → #{@position} na #{@daily_list.display_name}"
+        end
+      end
+    else
+      @presence = Presence.create!(
+        user: @user,
+        daily_list: @daily_list,
+        position: @position,
+        source: 'web',
+        status: 'confirmed',
+        confirmed_at: Time.current
+      )
+      Rails.logger.info "Nova presença criada: #{@user.nickname} na posição #{@position} da #{@daily_list.display_name}"
+    end
   end
 
   def handle_list_auto_progression!
     @next_list_created = false
 
-    # Verificar se lista ficou cheia após confirmação
     if @daily_list.reload.full?
       @next_list = @daily_list.mark_as_full_and_create_next!
       @next_list_created = true
