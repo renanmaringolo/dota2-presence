@@ -7,12 +7,6 @@ class Auth::RegisterOperation < ApplicationOperation
     log_registration_event!
     prepare_success_response!
     
-  rescue ValidationError => e
-    handle_validation_error(e)
-  rescue DuplicateUserError => e
-    handle_duplicate_error(e)
-  rescue DatabaseError => e
-    handle_database_error(e)
   rescue => e
     handle_unexpected_error(e)
   end
@@ -20,7 +14,19 @@ class Auth::RegisterOperation < ApplicationOperation
   private
 
   def parse_and_validate_params!
-    @parsed_params = ParamsParserService.parse_registration_params(params)
+    @parsed_params = {
+      email: params[:email]&.to_s&.downcase&.strip,
+      password: params[:password]&.to_s,
+      name: params[:name]&.to_s&.strip&.titleize,
+      nickname: params[:nickname]&.to_s&.strip,
+      phone: params[:phone]&.to_s&.gsub(/\D/, ''),
+      rank_medal: params[:rank_medal]&.to_s&.downcase&.strip,
+      rank_stars: params[:rank_stars]&.to_i,
+      preferred_position: params[:preferred_position]&.to_s&.upcase&.strip,
+      positions: parse_positions_array(params[:positions]),
+      category: params[:category],
+      role: params[:role] || 'player'
+    }
     
     validate_required_fields!
     validate_email_format!
@@ -31,11 +37,28 @@ class Auth::RegisterOperation < ApplicationOperation
     validate_positions_array!
   end
 
+  def parse_positions_array(positions)
+    return [] if positions.blank?
+    
+    case positions
+    when Array
+      positions.map { |pos| pos.to_s.upcase.strip }.compact
+    when String
+      begin
+        JSON.parse(positions).map { |pos| pos.to_s.upcase.strip }.compact
+      rescue JSON::ParserError
+        []
+      end
+    else
+      []
+    end
+  end
+
   def validate_required_fields!
     required_fields = [:email, :password, :name, :nickname, :rank_medal, :rank_stars]
     required_fields.each do |field|
       if @parsed_params[field].blank?
-        raise ValidationError, "#{field.to_s.humanize} is required"
+        raise StandardError, "#{field.to_s.humanize} is required"
       end
     end
   end
@@ -43,27 +66,27 @@ class Auth::RegisterOperation < ApplicationOperation
   def validate_email_format!
     email = @parsed_params[:email]
     unless email =~ URI::MailTo::EMAIL_REGEXP
-      raise ValidationError, 'Email format is invalid'
+      raise StandardError, 'Email format is invalid'
     end
   end
 
   def validate_password_strength!
     password = @parsed_params[:password]
     if password.length < 6
-      raise ValidationError, 'Password must be at least 6 characters long'
+      raise StandardError, 'Password must be at least 6 characters long'
     end
   end
 
   def validate_nickname_format!
     nickname = @parsed_params[:nickname]
     if nickname.length < 2
-      raise ValidationError, 'Nickname must be at least 2 characters long'
+      raise StandardError, 'Nickname must be at least 2 characters long'
     end
     if nickname.length > 20
-      raise ValidationError, 'Nickname cannot be longer than 20 characters'
+      raise StandardError, 'Nickname cannot be longer than 20 characters'
     end
     unless nickname =~ /\A[a-zA-Z0-9_-]+\z/
-      raise ValidationError, 'Nickname can only contain letters, numbers, underscores and hyphens'
+      raise StandardError, 'Nickname can only contain letters, numbers, underscores and hyphens'
     end
   end
 
@@ -72,7 +95,7 @@ class Auth::RegisterOperation < ApplicationOperation
     return if phone.blank?
     
     unless phone =~ /\A\d{10,11}\z/
-      raise ValidationError, 'Phone number must have 10 or 11 digits'
+      raise StandardError, 'Phone number must have 10 or 11 digits'
     end
   end
 
@@ -81,16 +104,16 @@ class Auth::RegisterOperation < ApplicationOperation
     stars = @parsed_params[:rank_stars]
     
     unless User::MEDALS.include?(medal)
-      raise ValidationError, "Invalid rank medal. Must be one of: #{User::MEDALS.join(', ')}"
+      raise StandardError, "Invalid rank medal. Must be one of: #{User::MEDALS.join(', ')}"
     end
     
     if medal == 'immortal'
       unless stars.is_a?(Integer) && stars > 0
-        raise ValidationError, 'Immortal rank must have a positive number for MMR ranking'
+        raise StandardError, 'Immortal rank must have a positive number for MMR ranking'
       end
     else
       unless stars.is_a?(Integer) && stars.in?(1..5)
-        raise ValidationError, 'Rank stars must be between 1 and 5'
+        raise StandardError, 'Rank stars must be between 1 and 5'
       end
     end
   end
@@ -101,7 +124,7 @@ class Auth::RegisterOperation < ApplicationOperation
     
     invalid_positions = positions - User::POSITIONS
     unless invalid_positions.empty?
-      raise ValidationError, "Invalid positions: #{invalid_positions.join(', ')}. Valid positions: #{User::POSITIONS.join(', ')}"
+      raise StandardError, "Invalid positions: #{invalid_positions.join(', ')}. Valid positions: #{User::POSITIONS.join(', ')}"
     end
   end
 
@@ -113,19 +136,19 @@ class Auth::RegisterOperation < ApplicationOperation
 
   def check_email_availability!
     if User.exists?(email: @parsed_params[:email])
-      raise DuplicateUserError, 'Email is already registered'
+      raise StandardError, 'Email is already registered'
     end
   end
 
   def check_name_phone_combination!
     if User.exists?(name: @parsed_params[:name], phone: @parsed_params[:phone])
-      raise DuplicateUserError, 'Name and phone combination already exists'
+      raise StandardError, 'Name and phone combination already exists'
     end
   end
 
   def check_phone_availability!
     if User.exists?(phone: @parsed_params[:phone])
-      raise DuplicateUserError, 'Phone number is already registered'
+      raise StandardError, 'Phone number is already registered'
     end
   end
 
@@ -136,10 +159,10 @@ class Auth::RegisterOperation < ApplicationOperation
     end
   rescue ActiveRecord::RecordInvalid => e
     Rails.logger.error "User creation failed: #{e.message}"
-    raise DatabaseError, "Failed to create user: #{e.record.errors.full_messages.join(', ')}"
+    raise StandardError, "Failed to create user: #{e.record.errors.full_messages.join(', ')}"
   rescue => e
     Rails.logger.error "Database transaction failed: #{e.message}"
-    raise DatabaseError, "Database error during user creation"
+    raise StandardError, "Database error during user creation"
   end
 
   def generate_auth_tokens!
@@ -147,7 +170,7 @@ class Auth::RegisterOperation < ApplicationOperation
     @expires_in = JwtService::TOKEN_LIFETIME.to_i
   rescue => e
     Rails.logger.error "Token generation failed: #{e.message}"
-    raise DatabaseError, "Failed to generate authentication token"
+    raise StandardError, "Failed to generate authentication token"
   end
 
   def log_registration_event!
@@ -178,23 +201,8 @@ class Auth::RegisterOperation < ApplicationOperation
     }
   end
 
-  def handle_validation_error(error)
-    Rails.logger.warn "Registration validation failed: #{error.message}"
-    error_response(error.message, 'ValidationError')
-  end
-
-  def handle_duplicate_error(error)
-    Rails.logger.warn "Registration duplicate error: #{error.message}"
-    error_response(error.message, 'DuplicateUserError')
-  end
-
-  def handle_database_error(error)
-    Rails.logger.error "Registration database error: #{error.message}"
-    error_response(error.message, 'DatabaseError')
-  end
-
   def handle_unexpected_error(error)
-    Rails.logger.error "Registration unexpected error: #{error.message}\n#{error.backtrace.join("\n")}"
-    error_response('An unexpected error occurred during registration', 'UnexpectedError')
+    Rails.logger.error "Registration error: #{error.message}\n#{error.backtrace.join("\n")}"
+    error_response(error.message, 'RegistrationError')
   end
 end

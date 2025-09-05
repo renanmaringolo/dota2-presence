@@ -19,8 +19,6 @@ Rails.application.routes.draw do
     post '/presences', to: 'api/v1/presences#create'
     delete '/presences/:list_type', to: 'api/v1/presences#destroy'
     
-    # Graphiti resources (legacy/admin)
-    resources :users, only: [:index, :show, :create, :update], controller: 'api/v1/users'
   end
 
   # Defines the root path route ("/")

@@ -1,1 +1,0 @@
-class DuplicateUserError < StandardError; end

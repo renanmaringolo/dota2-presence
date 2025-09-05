@@ -8,14 +8,8 @@ class Auth::LoginOperation < ApplicationOperation
     log_login_event!
     prepare_success_response!
     
-  rescue ValidationError => e
-    handle_validation_error(e)
-  rescue Auth::UserNotFound => e
-    handle_user_not_found_error(e)
   rescue Auth::InvalidCredentials => e
     handle_invalid_credentials_error(e)
-  rescue DatabaseError => e
-    handle_database_error(e)
   rescue => e
     handle_unexpected_error(e)
   end
@@ -23,7 +17,10 @@ class Auth::LoginOperation < ApplicationOperation
   private
 
   def parse_and_validate_params!
-    @parsed_params = ParamsParserService.parse_login_params(params)
+    @parsed_params = {
+      email: params[:email]&.to_s&.downcase&.strip,
+      password: params[:password]&.to_s
+    }
     
     validate_required_fields!
     validate_email_format!
@@ -32,36 +29,36 @@ class Auth::LoginOperation < ApplicationOperation
 
   def validate_required_fields!
     if @parsed_params[:email].blank?
-      raise ValidationError, 'Email is required'
+      raise Auth::InvalidCredentials, 'Email is required'
     end
     
     if @parsed_params[:password].blank?
-      raise ValidationError, 'Password is required'
+      raise Auth::InvalidCredentials, 'Password is required'
     end
   end
 
   def validate_email_format!
     email = @parsed_params[:email]
     unless email =~ URI::MailTo::EMAIL_REGEXP
-      raise ValidationError, 'Email format is invalid'
+      raise Auth::InvalidCredentials, 'Email format is invalid'
     end
   end
 
   def validate_password_presence!
     password = @parsed_params[:password]
     if password.length < 1
-      raise ValidationError, 'Password cannot be empty'
+      raise Auth::InvalidCredentials, 'Password cannot be empty'
     end
   end
 
   def find_user!
     @user = User.find_by(email: @parsed_params[:email])
     unless @user
-      raise Auth::UserNotFound, 'No account found with this email address'
+      raise Auth::InvalidCredentials, 'Invalid email or password'
     end
   rescue => e
     Rails.logger.error "Database error during user lookup: #{e.message}"
-    raise DatabaseError, 'Database error during login'
+    raise Auth::InvalidCredentials, 'Login service temporarily unavailable'
   end
 
   def authenticate_user_credentials!
@@ -85,7 +82,7 @@ class Auth::LoginOperation < ApplicationOperation
     @expires_in = JwtService::TOKEN_LIFETIME.to_i
   rescue => e
     Rails.logger.error "Token generation failed for user #{@user.email}: #{e.message}"
-    raise DatabaseError, "Failed to generate authentication token"
+    raise Auth::InvalidCredentials, "Failed to generate authentication token"
   end
 
   def log_login_event!
@@ -120,24 +117,9 @@ class Auth::LoginOperation < ApplicationOperation
     }
   end
 
-  def handle_validation_error(error)
-    Rails.logger.warn "Login validation failed: #{error.message}"
-    error_response(error.message, 'ValidationError')
-  end
-
-  def handle_user_not_found_error(error)
-    Rails.logger.warn "Login failed - user not found: #{@parsed_params[:email]}"
-    error_response('Invalid email or password', 'InvalidCredentials')
-  end
-
   def handle_invalid_credentials_error(error)
     Rails.logger.warn "Login failed - invalid credentials: #{@user&.email || @parsed_params[:email]}"
     error_response(error.message, 'InvalidCredentials')
-  end
-
-  def handle_database_error(error)
-    Rails.logger.error "Login database error: #{error.message}"
-    error_response('Login service temporarily unavailable', 'DatabaseError')
   end
 
   def handle_unexpected_error(error)
