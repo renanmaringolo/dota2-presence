@@ -5,14 +5,13 @@ class Auth::MeOperation < ApplicationOperation
     validate_user_account_status!
     log_me_event!
     prepare_success_response!
-    
   rescue TokenError => e
     handle_token_error(e)
   rescue Auth::UserNotFound => e
     handle_user_not_found_error(e)
   rescue DatabaseError => e
     handle_database_error(e)
-  rescue => e
+  rescue StandardError => e
     handle_unexpected_error(e)
   end
 
@@ -20,41 +19,35 @@ class Auth::MeOperation < ApplicationOperation
 
   def extract_and_validate_token!
     @token = params[:token]
-    
-    unless @token
-      raise TokenError, 'Authorization token is required'
-    end
-    
+
+    raise TokenError, 'Authorization token is required' unless @token
+
     @token = @token.gsub('Bearer ', '') if @token.start_with?('Bearer ')
-    
+
     @decoded_token = JwtService.decode(@token)
-    unless @decoded_token
-      raise TokenError, 'Invalid or expired token'
-    end
-    
-    unless JwtService.valid_user_token?(@token)
-      raise TokenError, 'Invalid token type'
-    end
+    raise TokenError, 'Invalid or expired token' unless @decoded_token
+
+    return if JwtService.valid_user_token?(@token)
+
+    raise TokenError, 'Invalid token type'
   end
 
   def find_user_from_token!
     user_id = @decoded_token[:user_id]
-    unless user_id
-      raise TokenError, 'Token missing user information'
-    end
-    
+    raise TokenError, 'Token missing user information' unless user_id
+
     @user = User.find(user_id)
   rescue ActiveRecord::RecordNotFound
     raise Auth::UserNotFound, 'User not found for this token'
-  rescue => e
+  rescue StandardError => e
     Rails.logger.error "Database error during user lookup: #{e.message}"
     raise DatabaseError, 'Database error during authentication'
   end
 
   def validate_user_account_status!
-    unless @user.active?
-      raise TokenError, 'Account has been deactivated. Please contact support.'
-    end
+    return if @user.active?
+
+    raise TokenError, 'Account has been deactivated. Please contact support.'
   end
 
   def log_me_event!
@@ -65,13 +58,13 @@ class Auth::MeOperation < ApplicationOperation
     token_exp = @decoded_token[:exp]
     current_time = Time.current.to_i
     expires_in = token_exp - current_time
-    
+
     success_response({
-      user: user_attributes,
-      user_object: @user,
-      token: @token,
-      expires_in: expires_in
-    })
+                       user: user_attributes,
+                       user_object: @user,
+                       token: @token,
+                       expires_in: expires_in
+                     })
   end
 
   def user_attributes

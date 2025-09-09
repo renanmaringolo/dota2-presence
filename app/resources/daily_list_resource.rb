@@ -3,7 +3,7 @@ class DailyListResource < ApplicationResource
   model DailyList
 
   attribute :id, :string, only: [:readable]
-  attribute :date, :date, only: [:readable] 
+  attribute :date, :date, only: [:readable]
   attribute :list_type, :string, only: [:readable]
   attribute :sequence_number, :integer, only: [:readable]
   attribute :display_name, :string, only: [:readable]
@@ -29,7 +29,5 @@ class DailyListResource < ApplicationResource
     @user_status || {}
   end
 
-  def user_status=(value)
-    @user_status = value
-  end
+  attr_writer :user_status
 end

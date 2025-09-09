@@ -12,13 +12,13 @@ class DailyList::GetCurrentListsOperation < ApplicationOperation
     daily_stats = calculate_daily_stats
 
     success_response({
-      current_lists: {
-        ancient: serialize_current_list(ancient_list),
-        immortal: serialize_current_list(immortal_list)
-      },
-      daily_stats: daily_stats,
-      historical_summary: get_recent_completed_lists
-    })
+                       current_lists: {
+                         ancient: serialize_current_list(ancient_list),
+                         immortal: serialize_current_list(immortal_list)
+                       },
+                       daily_stats: daily_stats,
+                       historical_summary: get_recent_completed_lists
+                     })
   end
 
   private
@@ -77,10 +77,10 @@ class DailyList::GetCurrentListsOperation < ApplicationOperation
 
   def find_user_presence_for_list_type(list_type)
     DailyList.for_date(@date)
-             .for_type(list_type)
-             .joins(:presences)
-             .where(presences: { user: @user, status: 'confirmed' })
-             .first&.presences&.find_by(user: @user)
+      .for_type(list_type)
+      .joins(:presences)
+      .where(presences: { user: @user, status: 'confirmed' })
+      .first&.presences&.find_by(user: @user)
   end
 
   def calculate_daily_stats
@@ -91,9 +91,9 @@ class DailyList::GetCurrentListsOperation < ApplicationOperation
       ancient_count: ancient_lists.count,
       immortal_count: immortal_lists.count,
       total_players_today: Presence.joins(:daily_list)
-                                  .where(daily_lists: { date: @date })
-                                  .where(status: 'confirmed')
-                                  .count,
+                             .where(daily_lists: { date: @date })
+                             .where(status: 'confirmed')
+                             .count,
       current_sequence: {
         ancient: ancient_lists.maximum(:sequence_number) || 0,
         immortal: immortal_lists.maximum(:sequence_number) || 0
@@ -103,20 +103,20 @@ class DailyList::GetCurrentListsOperation < ApplicationOperation
 
   def get_recent_completed_lists
     DailyList.where(date: (@date - 7.days)..@date)
-             .full
-             .includes(presences: :user)
-             .order(date: :desc, sequence_number: :desc)
-             .limit(10)
-             .map do |list|
-               {
-                 id: list.id,
-                 display_name: list.display_name,
-                 date: list.date,
-                 completed_at: list.updated_at,
-                 players: list.presences.confirmed.includes(:user).map do |p|
-                   "#{p.user.nickname} (#{p.position})"
-                 end
-               }
-             end
+      .full
+      .includes(presences: :user)
+      .order(date: :desc, sequence_number: :desc)
+      .limit(10)
+      .map do |list|
+      {
+        id: list.id,
+        display_name: list.display_name,
+        date: list.date,
+        completed_at: list.updated_at,
+        players: list.presences.confirmed.includes(:user).map do |p|
+          "#{p.user.nickname} (#{p.position})"
+        end
+      }
+    end
   end
 end

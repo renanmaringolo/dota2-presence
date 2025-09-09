@@ -1,0 +1,168 @@
+plugins:
+  - rubocop-rails
+  - rubocop-rspec
+
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 3.3
+  SuggestExtensions: false
+  Exclude:
+    - 'bin/**/*'
+    - 'db/**/*'
+    - 'config/**/*'
+    - 'script/**/*'
+    - 'vendor/**/*'
+    - 'node_modules/**/*'
+    - 'tmp/**/*'
+    - 'log/**/*'
+    - 'public/**/*'
+    - 'storage/**/*'
+    - '.git/**/*'
+    - 'frontend/**/*'
+
+# Layout cops - formatação visual
+Layout/LineLength:
+  Max: 120
+  AllowedPatterns:
+    - '^\s*#'  # Ignora comentários longos
+
+Layout/MultilineMethodCallIndentation:
+  EnforcedStyle: indented_relative_to_receiver
+
+# Metrics - tamanhos de código
+Metrics/MethodLength:
+  Max: 20
+  CountAsOne: ['array', 'hash', 'heredoc']
+
+Metrics/ClassLength:
+  Max: 150
+  CountAsOne: ['array', 'hash', 'heredoc']
+
+Metrics/BlockLength:
+  Max: 25
+  Exclude:
+    - 'spec/**/*'
+    - '*.gemspec'
+    - 'config/routes.rb'
+  CountAsOne: ['array', 'hash', 'heredoc']
+
+Metrics/AbcSize:
+  Max: 20
+
+Metrics/CyclomaticComplexity:
+  Max: 10
+
+Metrics/PerceivedComplexity:
+  Max: 10
+
+# Style cops - preferências de estilo
+Style/Documentation:
+  Enabled: false  # Não força documentação em todas as classes
+
+Style/FrozenStringLiteralComment:
+  Enabled: false  # frozen_string_literal opcional
+
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+  ConsistentQuotesInMultiline: true
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: single_quotes
+
+Style/SymbolArray:
+  EnforcedStyle: brackets
+
+Style/WordArray:
+  EnforcedStyle: brackets
+
+Style/HashSyntax:
+  EnforcedStyle: ruby19_no_mixed_keys
+
+Style/TrailingCommaInArrayLiteral:
+  EnforcedStyleForMultiline: no_comma
+
+Style/TrailingCommaInHashLiteral:
+  EnforcedStyleForMultiline: no_comma
+
+Style/TrailingCommaInArguments:
+  EnforcedStyleForMultiline: no_comma
+
+Style/ClassAndModuleChildren:
+  EnforcedStyle: compact
+
+# Rails specific
+Rails/SkipsModelValidations:
+  Exclude:
+    - 'spec/**/*'
+    - 'db/migrate/*'
+
+Rails/Output:
+  Exclude:
+    - 'db/seeds.rb'
+
+Rails/FilePath:
+  EnforcedStyle: arguments
+
+Rails/I18nLocaleTexts:
+  Enabled: false  # Permite strings hardcoded temporariamente
+
+# RSpec specific
+RSpec/ExampleLength:
+  Max: 15
+
+RSpec/MultipleExpectations:
+  Max: 5
+
+RSpec/NestedGroups:
+  Max: 4
+
+RSpec/ContextWording:
+  Prefixes:
+    - when
+    - with
+    - without
+    - if
+    - unless
+    - for
+
+RSpec/DescribeClass:
+  Exclude:
+    - 'spec/requests/**/*'
+    - 'spec/system/**/*'
+    - 'spec/features/**/*'
+
+RSpec/ImplicitSubject:
+  EnforcedStyle: single_statement_only
+
+RSpec/NamedSubject:
+  Enabled: true
+
+RSpec/SpecFilePathFormat:
+  Enabled: false  # Flexível com nomes de arquivos spec
+
+RSpec/SpecFilePathSuffix:
+  Enabled: false  # Flexível com sufixos de arquivos spec
+
+RSpec/MultipleMemoizedHelpers:
+  Max: 10
+
+
+# Naming
+Naming/PredicatePrefix:
+  Enabled: true
+  ForbiddenPrefixes:
+    - is_
+
+Naming/VariableNumber:
+  Enabled: false  # Permite user1, user2, etc.
+
+# Bundler
+Bundler/OrderedGems:
+  Enabled: false  # Não força ordem alfabética no Gemfile
+
+# Lint
+Lint/MissingSuper:
+  Exclude:
+    - 'app/services/**/*'
+    - 'app/operations/**/*'
+

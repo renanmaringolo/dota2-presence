@@ -9,7 +9,7 @@ class JwtService
 
   def self.decode(token)
     decoded = JWT.decode(token, SECRET_KEY, true, { algorithm: 'HS256' })[0]
-    HashWithIndifferentAccess.new(decoded)
+    ActiveSupport::HashWithIndifferentAccess.new(decoded)
   rescue JWT::DecodeError, JWT::ExpiredSignature => e
     Rails.logger.error "JWT Error: #{e.message}"
     nil
@@ -17,12 +17,12 @@ class JwtService
 
   def self.generate_user_token(user)
     encode({
-      user_id: user.id,
-      email: user.email,
-      nickname: user.nickname,
-      role: user.role,
-      type: 'user'
-    })
+             user_id: user.id,
+             email: user.email,
+             nickname: user.nickname,
+             role: user.role,
+             type: 'user'
+           })
   end
 
   def self.valid_user_token?(token)

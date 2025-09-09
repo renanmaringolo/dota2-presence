@@ -3,7 +3,7 @@ Rails.application.routes.draw do
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.
-  get "up" => "rails/health#show", as: :rails_health_check
+  get 'up' => 'rails/health#show', as: :rails_health_check
 
   # API routes with Graphiti pattern
   scope path: ApplicationResource.endpoint_namespace, defaults: { format: :jsonapi } do
@@ -11,16 +11,15 @@ Rails.application.routes.draw do
     post '/auth/register', to: 'api/v1/auth#register'
     post '/auth/login', to: 'api/v1/auth#login'
     get '/auth/me', to: 'api/v1/auth#me'
-    
+
     # Daily Lists routes
     get '/daily-lists/dashboard', to: 'api/v1/daily_lists#dashboard'
-    
+
     # Presences routes
     post '/presences', to: 'api/v1/presences#create'
     delete '/presences/:list_type', to: 'api/v1/presences#destroy'
-    
   end
 
   # Defines the root path route ("/")
-  root "rails/health#show"
+  root 'rails/health#show'
 end

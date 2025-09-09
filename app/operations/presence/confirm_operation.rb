@@ -13,16 +13,16 @@ class Presence::ConfirmOperation < ApplicationOperation
     validate_params!
     find_current_open_list!
     validate_business_rules!
-    
+
     find_or_create_presence!
     handle_list_auto_progression!
-    
+
     success_response({
-      presence: serialize_presence,
-      updated_list: serialize_list(@daily_list.reload),
-      next_list_created: @next_list_created,
-      next_list: @next_list ? serialize_list(@next_list) : nil
-    })
+                       presence: serialize_presence,
+                       updated_list: serialize_list(@daily_list.reload),
+                       next_list_created: @next_list_created,
+                       next_list: @next_list ? serialize_list(@next_list) : nil
+                     })
   rescue ValidationError => e
     error_response(e.message, 'validation_error')
   end
@@ -30,25 +30,25 @@ class Presence::ConfirmOperation < ApplicationOperation
   private
 
   def validate_params!
-    raise ValidationError, "Usuário é obrigatório" unless @user
-    raise ValidationError, "Posição é obrigatória" if @position.blank?
-    raise ValidationError, "Tipo de lista é obrigatório" if @list_type.blank?
-    raise ValidationError, "Posição inválida" unless %w[P1 P2 P3 P4 P5].include?(@position)
-    raise ValidationError, "Tipo de lista inválido" unless %w[ancient immortal].include?(@list_type)
+    raise ValidationError, 'Usuário é obrigatório' unless @user
+    raise ValidationError, 'Posição é obrigatória' if @position.blank?
+    raise ValidationError, 'Tipo de lista é obrigatório' if @list_type.blank?
+    raise ValidationError, 'Posição inválida' unless ['P1', 'P2', 'P3', 'P4', 'P5'].include?(@position)
+    raise ValidationError, 'Tipo de lista inválido' unless ['ancient', 'immortal'].include?(@list_type)
   end
 
   def find_current_open_list!
     @daily_list = DailyList.current_open_list(@date, @list_type)
-    raise ValidationError, "Lista não encontrada" unless @daily_list
+    raise ValidationError, 'Lista não encontrada' unless @daily_list
   end
 
   def validate_business_rules!
     unless @daily_list.can_user_join?(@user)
       case @list_type
       when 'ancient'
-        raise ValidationError, "Erro interno - todos podem participar da lista Ancient"
+        raise ValidationError, 'Erro interno - todos podem participar da lista Ancient'
       when 'immortal'
-        raise ValidationError, "Você precisa ser Divine+ para participar da lista Immortal"
+        raise ValidationError, 'Você precisa ser Divine+ para participar da lista Immortal'
       end
     end
 
@@ -56,35 +56,32 @@ class Presence::ConfirmOperation < ApplicationOperation
       raise ValidationError, "Posição #{@position} já está ocupada"
     end
 
-    unless @daily_list.status == 'open'
-      raise ValidationError, "Lista não está aberta para confirmações"
-    end
+    raise ValidationError, 'Lista não está aberta para confirmações' unless @daily_list.status == 'open'
 
     existing_presence = find_existing_confirmed_presence
-    if existing_presence
-      raise ValidationError, "Você já tem presença confirmada na #{existing_presence.daily_list.display_name}. Cancele primeiro para confirmar em outra lista."
-    end
+    return unless existing_presence
+
+    raise ValidationError,
+          "Você já tem presença confirmada na #{existing_presence.daily_list.display_name}. Cancele primeiro para confirmar em outra lista."
   end
 
   def find_existing_confirmed_presence
     Presence.joins(:daily_list)
-            .where(user: @user, status: 'confirmed')
-            .where(daily_lists: { status: 'open' })
-            .first
+      .where(user: @user, status: 'confirmed')
+      .where(daily_lists: { status: 'open' })
+      .first
   end
 
   def find_or_create_presence!
     @presence = @daily_list.presences.find_by(user: @user)
-    
+
     if @presence
       if @presence.status == 'cancelled'
         @presence.toggle_to_confirmed!(@position)
         Rails.logger.info "Presença reativada: #{@user.nickname} na posição #{@position} da #{@daily_list.display_name}"
-      else
-        if @presence.position != @position
-          @presence.update!(position: @position)
-          Rails.logger.info "Posição atualizada: #{@user.nickname} #{@presence.position} → #{@position} na #{@daily_list.display_name}"
-        end
+      elsif @presence.position != @position
+        @presence.update!(position: @position)
+        Rails.logger.info "Posição atualizada: #{@user.nickname} #{@presence.position} → #{@position} na #{@daily_list.display_name}"
       end
     else
       @presence = Presence.create!(
@@ -102,12 +99,12 @@ class Presence::ConfirmOperation < ApplicationOperation
   def handle_list_auto_progression!
     @next_list_created = false
 
-    if @daily_list.reload.full?
-      @next_list = @daily_list.mark_as_full_and_create_next!
-      @next_list_created = true
+    return unless @daily_list.reload.full?
 
-      Rails.logger.info "Auto-progressão: #{@daily_list.display_name} → #{@next_list.display_name}"
-    end
+    @next_list = @daily_list.mark_as_full_and_create_next!
+    @next_list_created = true
+
+    Rails.logger.info "Auto-progressão: #{@daily_list.display_name} → #{@next_list.display_name}"
   end
 
   def serialize_presence

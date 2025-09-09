@@ -1,12 +1,10 @@
 class Api::V1::DailyListsController < ApplicationController
   before_action :authenticate_user!
 
-  # GET /api/v1/daily-lists/dashboard
   def dashboard
     operation_result = DailyList::GetCurrentListsOperation.call(user: current_user)
 
     if operation_result[:meta][:success]
-      # Return current lists as they come from the operation (already serialized)
       current_lists = operation_result[:data][:current_lists]
 
       render json: {
@@ -23,7 +21,7 @@ class Api::V1::DailyListsController < ApplicationController
     else
       error_type = operation_result[:meta][:error_type] || 'DashboardError'
       error_message = operation_result[:meta][:message]
-      
+
       render json: {
         errors: [{
           status: '422',

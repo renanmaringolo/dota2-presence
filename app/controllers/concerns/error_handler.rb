@@ -50,17 +50,17 @@ module ErrorHandler
   def render_operation_error(operation_result)
     error_message = operation_result[:meta][:message] || 'Operation failed'
     error_type = operation_result[:meta][:error_type] || 'OperationError'
-    
+
     status_code = case error_type
-    when /NotFound/
-      404
-    when /Unauthorized/
-      401
-    when /Forbidden/
-      403
-    else
-      422
-    end
+                  when /NotFound/
+                    404
+                  when /Unauthorized/
+                    401
+                  when /Forbidden/
+                    403
+                  else
+                    422
+                  end
 
     render json: {
       errors: [{

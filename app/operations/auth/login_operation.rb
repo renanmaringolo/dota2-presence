@@ -7,10 +7,9 @@ class Auth::LoginOperation < ApplicationOperation
     generate_auth_tokens!
     log_login_event!
     prepare_success_response!
-    
   rescue Auth::InvalidCredentials => e
     handle_invalid_credentials_error(e)
-  rescue => e
+  rescue StandardError => e
     handle_unexpected_error(e)
   end
 
@@ -21,42 +20,38 @@ class Auth::LoginOperation < ApplicationOperation
       email: params[:email]&.to_s&.downcase&.strip,
       password: params[:password]&.to_s
     }
-    
+
     validate_required_fields!
     validate_email_format!
     validate_password_presence!
   end
 
   def validate_required_fields!
-    if @parsed_params[:email].blank?
-      raise Auth::InvalidCredentials, 'Email is required'
-    end
-    
-    if @parsed_params[:password].blank?
-      raise Auth::InvalidCredentials, 'Password is required'
-    end
+    raise Auth::InvalidCredentials, 'Email is required' if @parsed_params[:email].blank?
+
+    return if @parsed_params[:password].present?
+
+    raise Auth::InvalidCredentials, 'Password is required'
   end
 
   def validate_email_format!
     email = @parsed_params[:email]
-    unless email =~ URI::MailTo::EMAIL_REGEXP
-      raise Auth::InvalidCredentials, 'Email format is invalid'
-    end
+    return if email =~ URI::MailTo::EMAIL_REGEXP
+
+    raise Auth::InvalidCredentials, 'Email format is invalid'
   end
 
   def validate_password_presence!
     password = @parsed_params[:password]
-    if password.length < 1
-      raise Auth::InvalidCredentials, 'Password cannot be empty'
-    end
+    return unless password.empty?
+
+    raise Auth::InvalidCredentials, 'Password cannot be empty'
   end
 
   def find_user!
     @user = User.find_by(email: @parsed_params[:email])
-    unless @user
-      raise Auth::InvalidCredentials, 'Invalid email or password'
-    end
-  rescue => e
+    raise Auth::InvalidCredentials, 'Invalid email or password' unless @user
+  rescue StandardError => e
     Rails.logger.error "Database error during user lookup: #{e.message}"
     raise Auth::InvalidCredentials, 'Login service temporarily unavailable'
   end
@@ -72,17 +67,17 @@ class Auth::LoginOperation < ApplicationOperation
   end
 
   def validate_user_account_status!
-    unless @user.active?
-      raise Auth::InvalidCredentials, 'Account has been deactivated. Please contact support.'
-    end
+    return if @user.active?
+
+    raise Auth::InvalidCredentials, 'Account has been deactivated. Please contact support.'
   end
 
   def generate_auth_tokens!
     @token = JwtService.generate_user_token(@user)
     @expires_in = JwtService::TOKEN_LIFETIME.to_i
-  rescue => e
+  rescue StandardError => e
     Rails.logger.error "Token generation failed for user #{@user.email}: #{e.message}"
-    raise Auth::InvalidCredentials, "Failed to generate authentication token"
+    raise Auth::InvalidCredentials, 'Failed to generate authentication token'
   end
 
   def log_login_event!
@@ -91,10 +86,10 @@ class Auth::LoginOperation < ApplicationOperation
 
   def prepare_success_response!
     success_response({
-      user: user_attributes,
-      token: @token,
-      expires_in: @expires_in
-    })
+                       user: user_attributes,
+                       token: @token,
+                       expires_in: @expires_in
+                     })
   end
 
   def user_attributes

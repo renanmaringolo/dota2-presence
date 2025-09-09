@@ -1,7 +1,6 @@
 class Api::V1::PresencesController < ApplicationController
   before_action :authenticate_user!
 
-  # POST /api/v1/presences
   def create
     operation_result = Presence::ConfirmOperation.call(
       user: current_user,
@@ -10,7 +9,6 @@ class Api::V1::PresencesController < ApplicationController
     )
 
     if operation_result[:meta][:success]
-      # Return simplified JSON response
       render json: {
         data: {
           presence: operation_result[:data][:presence],
@@ -26,7 +24,7 @@ class Api::V1::PresencesController < ApplicationController
     else
       error_type = operation_result[:meta][:error_type] || 'PresenceError'
       error_message = operation_result[:meta][:message]
-      
+
       render json: {
         errors: [{
           status: '422',
@@ -37,10 +35,9 @@ class Api::V1::PresencesController < ApplicationController
     end
   end
 
-  # DELETE /api/v1/presences/:list_type
   def destroy
     presence = find_user_presence_for_list_type(params[:list_type])
-    
+
     unless presence
       return render json: {
         errors: [{
@@ -62,18 +59,16 @@ class Api::V1::PresencesController < ApplicationController
     end
 
     begin
-      presence.toggle_to_cancelled!("Cancelado pelo usuário")
-      
+      presence.toggle_to_cancelled!('Cancelado pelo usuário')
+
       daily_list = presence.daily_list
-      if daily_list.status == 'full'
-        daily_list.update!(status: 'open')
-      end
+      daily_list.update!(status: 'open') if daily_list.status == 'full'
 
       render json: {
         data: nil,
         meta: {
           success: true,
-          message: "Presença cancelada com sucesso!"
+          message: 'Presença cancelada com sucesso!'
         }
       }, status: :ok
     rescue ActiveRecord::RecordInvalid => e
@@ -90,12 +85,9 @@ class Api::V1::PresencesController < ApplicationController
   private
 
   def presence_params
-    # Handle both direct params and nested Graphiti format
     if params[:list_type] && params[:position]
-      # Direct format from curl
       params.permit(:position, :list_type)
     else
-      # Graphiti nested format
       params.require(:data).require(:attributes).permit(:position, :list_type)
     end
   end
@@ -112,9 +104,9 @@ class Api::V1::PresencesController < ApplicationController
 
   def find_user_presence_for_list_type(list_type)
     DailyList.for_date(Date.current)
-             .for_type(list_type)
-             .joins(:presences)
-             .where(presences: { user: current_user, status: 'confirmed' })
-             .first&.presences&.find_by(user: current_user, status: 'confirmed')
+      .for_type(list_type)
+      .joins(:presences)
+      .where(presences: { user: current_user, status: 'confirmed' })
+      .first&.presences&.find_by(user: current_user, status: 'confirmed')
   end
 end

@@ -10,9 +10,9 @@ class CreateDailyLists < ActiveRecord::Migration[7.1]
 
       t.timestamps
     end
-    
+
     # Índices para performance e integridade
-    add_index :daily_lists, [:date, :list_type, :sequence_number], unique: true, name: 'idx_daily_lists_unique'
-    add_index :daily_lists, [:date, :list_type, :status], name: 'idx_daily_lists_search'
+    add_index :daily_lists, %i[date list_type sequence_number], unique: true, name: 'idx_daily_lists_unique'
+    add_index :daily_lists, %i[date list_type status], name: 'idx_daily_lists_search'
   end
 end

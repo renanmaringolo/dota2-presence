@@ -1,14 +1,14 @@
 class User < ApplicationRecord
   has_secure_password
 
-  POSITIONS = %w[P1 P2 P3 P4 P5].freeze
-  CATEGORIES = %w[ancient immortal].freeze
-  ROLES = %w[player admin].freeze
-  
-  MEDALS = %w[herald guardian crusader archon legend ancient divine immortal].freeze
-  
-  validates :email, presence: true, uniqueness: { case_sensitive: false }, 
-            format: { with: URI::MailTo::EMAIL_REGEXP }
+  POSITIONS = ['P1', 'P2', 'P3', 'P4', 'P5'].freeze
+  CATEGORIES = ['ancient', 'immortal'].freeze
+  ROLES = ['player', 'admin'].freeze
+
+  MEDALS = ['herald', 'guardian', 'crusader', 'archon', 'legend', 'ancient', 'divine', 'immortal'].freeze
+
+  validates :email, presence: true, uniqueness: { case_sensitive: false },
+                    format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :password, length: { minimum: 6 }, if: :password_required?
   validates :name, presence: true
   validates :nickname, presence: true
@@ -17,18 +17,18 @@ class User < ApplicationRecord
   validates :category, presence: true, inclusion: { in: CATEGORIES }
   validates :preferred_position, inclusion: { in: POSITIONS }, allow_blank: true
   validates :rank_medal, presence: true, inclusion: { in: MEDALS }
-  validates :rank_stars, presence: true, inclusion: { in: 1..5 }, 
-            if: -> { rank_medal != 'immortal' }
-  validates :rank_stars, presence: true, numericality: { greater_than: 0 }, 
-            if: -> { rank_medal == 'immortal' }
+  validates :rank_stars, presence: true, inclusion: { in: 1..5 },
+                         if: -> { rank_medal != 'immortal' }
+  validates :rank_stars, presence: true, numericality: { greater_than: 0 },
+                         if: -> { rank_medal == 'immortal' }
   validates :role, presence: true, inclusion: { in: ROLES }
-  
+
   validate :positions_are_valid
   validate :category_matches_rank
 
+  after_initialize :set_defaults, if: :new_record?
   before_validation :normalize_email
   before_validation :set_category_from_rank
-  after_initialize :set_defaults, if: :new_record?
 
   scope :active, -> { where(active: true) }
   scope :immortal, -> { where(category: 'immortal') }
@@ -50,7 +50,7 @@ class User < ApplicationRecord
   end
 
   def can_join_immortal_list?
-    %w[divine immortal].include?(rank_medal)
+    ['divine', 'immortal'].include?(rank_medal)
   end
 
   def plays_position?(position)
@@ -84,7 +84,7 @@ class User < ApplicationRecord
   end
 
   def set_category_from_rank
-    self.category = if %w[divine immortal].include?(rank_medal)
+    self.category = if ['divine', 'immortal'].include?(rank_medal)
                       'immortal'
                     else
                       'ancient'
@@ -99,17 +99,17 @@ class User < ApplicationRecord
 
   def positions_are_valid
     return if positions.blank?
-    
+
     invalid_positions = positions - POSITIONS
     return if invalid_positions.empty?
-    
+
     errors.add(:positions, "contains invalid positions: #{invalid_positions.join(', ')}")
   end
 
   def category_matches_rank
-    expected_category = %w[divine immortal].include?(rank_medal) ? 'immortal' : 'ancient'
+    expected_category = ['divine', 'immortal'].include?(rank_medal) ? 'immortal' : 'ancient'
     return if category == expected_category
-    
+
     errors.add(:category, "must be #{expected_category} for #{rank_medal} rank")
   end
 

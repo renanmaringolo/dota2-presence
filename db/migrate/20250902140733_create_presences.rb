@@ -11,15 +11,15 @@ class CreatePresences < ActiveRecord::Migration[7.1]
 
       t.timestamps
     end
-    
+
     # Constraints únicos críticos
-    add_index :presences, [:daily_list_id, :position], unique: true, 
-              where: "status = 'confirmed'", name: 'idx_presences_unique_position'
-    add_index :presences, [:daily_list_id, :user_id], unique: true, 
-              where: "status = 'confirmed'", name: 'idx_presences_unique_user'
-    
+    add_index :presences, %i[daily_list_id position], unique: true,
+                                                      where: "status = 'confirmed'", name: 'idx_presences_unique_position'
+    add_index :presences, %i[daily_list_id user_id], unique: true,
+                                                     where: "status = 'confirmed'", name: 'idx_presences_unique_user'
+
     # Índices para performance
-    add_index :presences, [:user_id, :status], name: 'idx_presences_user_status'
-    add_index :presences, [:daily_list_id, :status], name: 'idx_presences_list_status'
+    add_index :presences, %i[user_id status], name: 'idx_presences_user_status'
+    add_index :presences, %i[daily_list_id status], name: 'idx_presences_list_status'
   end
 end
