@@ -1,5 +1,4 @@
-class Auth::InvalidCredentials < StandardError
-  def initialize(msg = 'Invalid email or password')
-    super
-  end
+class Auth::InvalidCredentials < BaseError
+  HTTP_STATUS = 401
+  MESSAGE = 'Invalid email or password'.freeze
 end
